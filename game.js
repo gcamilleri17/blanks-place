@@ -35,6 +35,25 @@ const computer = {
 let gameRunning = false;
 const winScore = 10; // Score needed to win the game
 
+// Timers
+let speedIncreaseTimer = 0;
+let paddleRotationTimer = 0;
+const speedIncreaseInterval = 10000; // 10 seconds
+const paddleRotationInterval = 10000; // 10 seconds
+
+// Background flash
+let isFlashing = false;
+let flashTimer = 0;
+const flashDuration = 500; // 0.5 seconds
+let backgroundColor = '#000';
+
+// Paddle rotation
+let playerRotation = 0;
+let computerRotation = 0;
+let isRotating = false;
+let rotationProgress = 0;
+const rotationDuration = 1000; // 1 second for full rotation
+
 const net = {
     x: (canvas.width - 2) / 2,
     y: 0,
@@ -42,6 +61,11 @@ const net = {
     height: 10,
     color: 'white'
 };
+
+// Flowers
+const flowers = [];
+let flowerSpawnTimer = 0;
+const flowerSpawnInterval = 5000; // 5 seconds
 
 // Draw functions
 function drawRect(x, y, w, h, color) {
@@ -78,7 +102,7 @@ function updateScore() {
 // Render the game
 function render() {
     // Clear the canvas
-    drawRect(0, 0, canvas.width, canvas.height, '#000');
+    drawRect(0, 0, canvas.width, canvas.height, backgroundColor);
 
     // Draw the net
     drawNet();
@@ -87,12 +111,35 @@ function render() {
     // drawText(player.score, canvas.width / 4, canvas.height / 5, 'white');
     // drawText(computer.score, 3 * canvas.width / 4, canvas.height / 5, 'white');
 
-    // Draw paddles
-    drawRect(player.x, player.y, player.width, player.height, player.color);
-    drawRect(computer.x, computer.y, computer.width, computer.height, computer.color);
+    // Draw flowers
+    flowers.forEach(flower => {
+        if (flower.active) {
+            drawCircle(flower.x, flower.y, flower.radius, flower.color);
+        }
+    });
+
+    // Draw paddles with rotation
+    drawRotatedPaddle(player, playerRotation);
+    drawRotatedPaddle(computer, computerRotation);
 
     // Draw ball
     drawCircle(ball.x, ball.y, ball.radius, ball.color);
+}
+
+// Draw a rotated paddle
+function drawRotatedPaddle(paddle, rotation) {
+    ctx.save(); // Save the current state
+    
+    // Translate to the center of the paddle
+    ctx.translate(paddle.x + paddle.width / 2, paddle.y + paddle.height / 2);
+    
+    // Rotate
+    ctx.rotate(rotation * Math.PI / 180);
+    
+    // Draw the paddle centered at the origin
+    drawRect(-paddle.width / 2, -paddle.height / 2, paddle.width, paddle.height, paddle.color);
+    
+    ctx.restore(); // Restore the state
 }
 
 // Collision detection
@@ -157,17 +204,84 @@ function computerAI() {
     computer.y += (targetY - computer.y) * computerLevel;
 }
 
+// Start paddle rotation animation
+function startPaddleRotation() {
+    isRotating = true;
+    rotationProgress = 0;
+}
+
+// Start background flash
+function flashBackground() {
+    isFlashing = true;
+    flashTimer = 0;
+    backgroundColor = '#FFFF00'; // Yellow
+}
+
 // Update game state
 function update() {
+    // Spawn flowers
+    if (gameRunning) {
+        flowerSpawnTimer += 16; // Approximately 16ms per frame at 60fps
+        
+        if (flowerSpawnTimer >= flowerSpawnInterval) {
+            spawnFlower();
+            flowerSpawnTimer = 0;
+        }
+        
+        // Ball speed increase every 10 seconds
+        speedIncreaseTimer += 16;
+        if (speedIncreaseTimer >= speedIncreaseInterval) {
+            ball.speed += 0.5;
+            speedIncreaseTimer = 0;
+        }
+        
+        // Paddle rotation every 10 seconds
+        paddleRotationTimer += 16;
+        if (paddleRotationTimer >= paddleRotationInterval) {
+            startPaddleRotation();
+            paddleRotationTimer = 0;
+        }
+        
+        // Handle paddle rotation animation
+        if (isRotating) {
+            rotationProgress += 16;
+            const rotationPercentage = rotationProgress / rotationDuration;
+            
+            if (rotationPercentage >= 1) {
+                // Rotation complete
+                playerRotation = 0;
+                computerRotation = 0;
+                isRotating = false;
+                rotationProgress = 0;
+            } else {
+                // Calculate rotation angle based on progress
+                const angle = 360 * rotationPercentage;
+                playerRotation = angle;
+                computerRotation = angle;
+            }
+        }
+        
+        // Handle background flash
+        if (isFlashing) {
+            flashTimer += 16;
+            if (flashTimer >= flashDuration) {
+                backgroundColor = '#000'; // Reset to black
+                isFlashing = false;
+            }
+        }
+    }
+
     // Update scores
     if (ball.x - ball.radius < 0) {
         computer.score++;
         updateScore();
+        flashBackground(); // Flash background when player loses
         checkGameOver();
         resetBall();
     } else if (ball.x + ball.radius > canvas.width) {
         player.score++;
         updateScore();
+        flashBackground(); // Flash background when computer loses
         checkGameOver();
         resetBall();
     }
@@ -207,6 +321,53 @@ function update() {
         // Increase ball speed with each hit
         ball.speed += 0.1;
     }
+    
+    // Check collision with flowers
+    flowers.forEach(flower => {
+        if (flower.active && checkFlowerCollision(ball, flower)) {
+            // Change ball color when hitting a flower
+            ball.color = flower.color;
+            flower.active = false;
+        }
+    });
+}
+
+// Create and spawn a flower at random position
+function spawnFlower() {
+    // Create a new flower at a random position on the canvas
+    // Avoid spawning too close to edges or paddles
+    const margin = 50;
+    const flowerRadius = 10;
+    
+    const flower = {
+        x: Math.random() * (canvas.width - 2 * margin) + margin,
+        y: Math.random() * (canvas.height - 2 * margin) + margin,
+        radius: flowerRadius,
+        color: getRandomColor(),
+        active: true
+    };
+    
+    flowers.push(flower);
+    
+    // Limit the number of flowers on screen to prevent performance issues
+    if (flowers.length > 5) {
+        flowers.shift(); // Remove the oldest flower
+    }
+}
+
+// Check collision between ball and flower
+function checkFlowerCollision(ball, flower) {
+    const dx = ball.x - flower.x;
+    const dy = ball.y - flower.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    return distance < ball.radius + flower.radius;
+}
+
+// Generate random color for flowers
+function getRandomColor() {
+    const colors = ['#FF5733', '#33FF57', '#3357FF', '#F3FF33', '#FF33F3', '#33FFF3'];
+    return colors[Math.floor(Math.random() * colors.length)];
 }
 
 // Check if game is over
@@ -252,6 +413,19 @@ function startGame() {
     
     // Reset ball
     resetBall();
+    
+    // Reset timers and state
+    speedIncreaseTimer = 0;
+    paddleRotationTimer = 0;
+    flowerSpawnTimer = 0;
+    backgroundColor = '#000';
+    isFlashing = false;
+    isRotating = false;
+    playerRotation = 0;
+    computerRotation = 0;
+    
+    // Clear flowers
+    flowers.length = 0;
     
     // Reset game state
     gameRunning = true;
