@@ -135,7 +135,10 @@ function drawCircle(x, y, r, color) {
 }
 
 function drawNet() {
-    for (let i = 0; i <= canvas.height; i += 15) {
+    // Adjust net segment spacing based on canvas height
+    const spacing = Math.max(10, canvas.height / 30);
+    
+    for (let i = 0; i <= canvas.height; i += spacing) {
         drawRect(net.x, net.y + i, net.width, net.height, net.color);
     }
 }
@@ -163,7 +166,8 @@ function render() {
     drawNet();
 
     // Draw scores in the center top like the classic Pong style
-    drawText(player.score + " : " + computer.score, canvas.width / 2, 50, 'white');
+    const yOffset = Math.max(30, canvas.height / 8);
+    drawText(player.score + " : " + computer.score, canvas.width / 2, yOffset, 'white');
 
     // Draw flowers
     flowers.forEach(flower => {
@@ -229,8 +233,20 @@ canvas.addEventListener('mousemove', movePaddle);
 // Touch control for player paddle (for mobile devices)
 canvas.addEventListener('touchmove', function(e) {
     e.preventDefault(); // Prevent scrolling when touching the canvas
-    const touch = e.touches[0];
-    movePaddle(touch);
+    if (e.touches.length > 0) {
+        const touchY = e.touches[0].clientY;
+        const rect = canvas.getBoundingClientRect();
+        let paddlePos = touchY - rect.top - player.height / 2;
+        
+        // Make sure the paddle stays within the canvas
+        if (paddlePos < 0) {
+            paddlePos = 0;
+        } else if (paddlePos + player.height > canvas.height) {
+            paddlePos = canvas.height - player.height;
+        }
+        
+        player.y = paddlePos;
+    }
 });
 
 function movePaddle(e) {
@@ -467,6 +483,14 @@ function gameLoop() {
 document.getElementById('start-btn').addEventListener('click', startGame);
 document.getElementById('restart-btn').addEventListener('click', startGame);
 
+// Add canvas tap to start on mobile
+canvas.addEventListener('touchstart', function(e) {
+    if (!gameRunning) {
+        e.preventDefault();
+        startGame();
+    }
+});
+
 function startGame() {
     // Hide game over screen
     document.getElementById('game-over').style.display = 'none';
@@ -526,5 +550,7 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Initial render
+// Initial setup
+setCanvasDimensions();
+resetPositions();
 render();
