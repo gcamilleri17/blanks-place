@@ -31,6 +31,10 @@ const computer = {
     color: 'white'
 };
 
+// Game state
+let gameRunning = false;
+const winScore = 10; // Score needed to win the game
+
 const net = {
     x: (canvas.width - 2) / 2,
     y: 0,
@@ -119,13 +123,38 @@ canvas.addEventListener('mousemove', movePaddle);
 
 function movePaddle(e) {
     let rect = canvas.getBoundingClientRect();
-    player.y = e.clientY - rect.top - player.height / 2;
+    let mouseY = e.clientY - rect.top - player.height / 2;
+    
+    // Make sure the paddle stays within the canvas
+    if (mouseY < 0) {
+        mouseY = 0;
+    } else if (mouseY + player.height > canvas.height) {
+        mouseY = canvas.height - player.height;
+    }
+    
+    player.y = mouseY;
 }
 
 // Computer AI
 function computerAI() {
     let computerLevel = 0.1; // 0 is easiest, 1 is hardest
-    computer.y += (ball.y - (computer.y + computer.height / 2)) * computerLevel;
+    
+    // Make the computer more responsive when the ball is moving towards it
+    if (ball.velocityX > 0) {
+        // Ball is moving towards computer
+        computerLevel = 0.15; // Increase difficulty when ball is moving towards computer
+    }
+    
+    let targetY = ball.y - (computer.height / 2);
+    
+    // Make sure the paddle stays within the canvas
+    if (targetY < 0) {
+        targetY = 0;
+    } else if (targetY + computer.height > canvas.height) {
+        targetY = canvas.height - computer.height;
+    }
+    
+    computer.y += (targetY - computer.y) * computerLevel;
 }
 
 // Update game state
@@ -134,10 +163,12 @@ function update() {
     if (ball.x - ball.radius < 0) {
         computer.score++;
         updateScore();
+        checkGameOver();
         resetBall();
     } else if (ball.x + ball.radius > canvas.width) {
         player.score++;
         updateScore();
+        checkGameOver();
         resetBall();
     }
 
@@ -178,15 +209,42 @@ function update() {
     }
 }
 
+// Check if game is over
+function checkGameOver() {
+    if (player.score >= winScore || computer.score >= winScore) {
+        gameRunning = false;
+        
+        // Show game over screen
+        const gameOverScreen = document.getElementById('game-over');
+        const winnerText = document.getElementById('winner-text');
+        
+        if (player.score >= winScore) {
+            winnerText.innerText = "Player wins!";
+        } else {
+            winnerText.innerText = "Computer wins!";
+        }
+        
+        gameOverScreen.style.display = 'block';
+    }
+}
+
 // Game initialization
 function gameLoop() {
-    update();
-    render();
-    requestAnimationFrame(gameLoop);
+    if (gameRunning) {
+        update();
+        render();
+        requestAnimationFrame(gameLoop);
+    }
 }
 
 // Start button functionality
-document.getElementById('start-btn').addEventListener('click', function() {
+document.getElementById('start-btn').addEventListener('click', startGame);
+document.getElementById('restart-btn').addEventListener('click', startGame);
+
+function startGame() {
+    // Hide game over screen
+    document.getElementById('game-over').style.display = 'none';
+    
     // Reset scores
     player.score = 0;
     computer.score = 0;
@@ -195,8 +253,35 @@ document.getElementById('start-btn').addEventListener('click', function() {
     // Reset ball
     resetBall();
     
+    // Reset game state
+    gameRunning = true;
+    
     // Start game loop
     requestAnimationFrame(gameLoop);
+}
+
+// Keyboard controls
+document.addEventListener('keydown', function(e) {
+    const paddleSpeed = 20;
+    
+    if (e.key === 'ArrowUp') {
+        let newPosition = player.y - paddleSpeed;
+        if (newPosition >= 0) {
+            player.y = newPosition;
+        } else {
+            player.y = 0;
+        }
+    } else if (e.key === 'ArrowDown') {
+        let newPosition = player.y + paddleSpeed;
+        if (newPosition + player.height <= canvas.height) {
+            player.y = newPosition;
+        } else {
+            player.y = canvas.height - player.height;
+        }
+    } else if (e.key === ' ' || e.key === 'Spacebar') {
+        // Start game when pressing spacebar
+        startGame();
+    }
 });
 
 // Initial render
