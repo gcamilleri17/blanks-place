@@ -2,10 +2,37 @@
 const canvas = document.getElementById('pong');
 const ctx = canvas.getContext('2d');
 
+// Set canvas dimensions
+function setCanvasDimensions() {
+    const container = document.querySelector('.game-container');
+    const maxWidth = 800;
+    const width = Math.min(container.clientWidth, maxWidth);
+    const height = width / 2; // Maintain 2:1 aspect ratio
+    
+    canvas.width = width;
+    canvas.height = height;
+    
+    // Update net position
+    net.x = (canvas.width - 2) / 2;
+    
+    // Update computer paddle position
+    computer.x = canvas.width - 10;
+}
+
+// Initialize canvas dimensions
+setCanvasDimensions();
+
+// Handle window resize
+window.addEventListener('resize', function() {
+    setCanvasDimensions();
+    resetBall();
+    render();
+});
+
 // Game objects
 const ball = {
-    x: canvas.width / 2,
-    y: canvas.height / 2,
+    x: 0,
+    y: 0,
     radius: 10,
     velocityX: 5,
     velocityY: 5,
@@ -15,7 +42,7 @@ const ball = {
 
 const player = {
     x: 0, // left side of canvas
-    y: (canvas.height - 100) / 2, // -100 is the height of the paddle
+    y: 0, // will be set in resetPositions()
     width: 10,
     height: 100,
     score: 0,
@@ -23,13 +50,39 @@ const player = {
 };
 
 const computer = {
-    x: canvas.width - 10, // right side of canvas
-    y: (canvas.height - 100) / 2, // -100 is the height of the paddle
+    x: 0, // will be set in resetPositions()
+    y: 0, // will be set in resetPositions()
     width: 10,
     height: 100,
     score: 0,
     color: 'white'
 };
+
+// Function to reset positions based on current canvas size
+function resetPositions() {
+    // Set ball position to center of the canvas
+    ball.x = canvas.width / 2;
+    ball.y = canvas.height / 2;
+    
+    // Set player position
+    player.x = 0; // left side
+    player.y = (canvas.height - player.height) / 2;
+    
+    // Set computer position
+    computer.x = canvas.width - computer.width; // right side
+    computer.y = (canvas.height - computer.height) / 2;
+    
+    // Adjust paddle height based on canvas height
+    const paddleHeight = Math.min(100, canvas.height / 4);
+    player.height = paddleHeight;
+    computer.height = paddleHeight;
+    
+    // Adjust ball radius based on canvas width
+    ball.radius = Math.max(5, Math.min(10, canvas.width / 80));
+}
+
+// Initialize positions
+resetPositions();
 
 // Game state
 let gameRunning = false;
@@ -45,7 +98,7 @@ const paddleRotationInterval = 10000; // 10 seconds
 let isFlashing = false;
 let flashTimer = 0;
 const flashDuration = 500; // 0.5 seconds
-let backgroundColor = '#000';
+let backgroundColor = '#2196F3'; // Light blue background like classic Pong
 
 // Paddle rotation
 let playerRotation = 0;
@@ -89,14 +142,16 @@ function drawNet() {
 
 function drawText(text, x, y, color) {
     ctx.fillStyle = color;
-    ctx.font = '45px Arial';
+    const fontSize = Math.max(25, Math.min(45, canvas.width / 15));
+    ctx.font = `${fontSize}px Arial`;
+    ctx.textAlign = 'center';
     ctx.fillText(text, x, y);
 }
 
 // Update score display
 function updateScore() {
-    document.getElementById('player-score').innerText = player.score;
-    document.getElementById('computer-score').innerText = computer.score;
+    // We don't need to update DOM elements anymore as scores are drawn directly on canvas
+    // Just ensure render is called to update the canvas
 }
 
 // Render the game
@@ -107,9 +162,8 @@ function render() {
     // Draw the net
     drawNet();
 
-    // Draw scores
-    // drawText(player.score, canvas.width / 4, canvas.height / 5, 'white');
-    // drawText(computer.score, 3 * canvas.width / 4, canvas.height / 5, 'white');
+    // Draw scores in the center top like the classic Pong style
+    drawText(player.score + " : " + computer.score, canvas.width / 2, 50, 'white');
 
     // Draw flowers
     flowers.forEach(flower => {
@@ -163,10 +217,21 @@ function resetBall() {
     ball.y = canvas.height / 2;
     ball.velocityX = -ball.velocityX;
     ball.speed = 7;
+    
+    // Scale ball speed based on canvas width
+    const speedScale = canvas.width / 800;
+    ball.speed = 7 * speedScale;
 }
 
 // Mouse control for player paddle
 canvas.addEventListener('mousemove', movePaddle);
+
+// Touch control for player paddle (for mobile devices)
+canvas.addEventListener('touchmove', function(e) {
+    e.preventDefault(); // Prevent scrolling when touching the canvas
+    const touch = e.touches[0];
+    movePaddle(touch);
+});
 
 function movePaddle(e) {
     let rect = canvas.getBoundingClientRect();
@@ -265,7 +330,7 @@ function update() {
         if (isFlashing) {
             flashTimer += 16;
             if (flashTimer >= flashDuration) {
-                backgroundColor = '#000'; // Reset to black
+                backgroundColor = '#2196F3'; // Reset to blue
                 isFlashing = false;
             }
         }
@@ -411,6 +476,9 @@ function startGame() {
     computer.score = 0;
     updateScore();
     
+    // Reset positions for all game objects
+    resetPositions();
+    
     // Reset ball
     resetBall();
     
@@ -418,7 +486,7 @@ function startGame() {
     speedIncreaseTimer = 0;
     paddleRotationTimer = 0;
     flowerSpawnTimer = 0;
-    backgroundColor = '#000';
+    backgroundColor = '#2196F3'; // Reset to blue
     isFlashing = false;
     isRotating = false;
     playerRotation = 0;

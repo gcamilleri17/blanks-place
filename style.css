@@ -7,6 +7,7 @@ body {
     height: 100vh;
     background-color: #222;
     font-family: Arial, sans-serif;
+    overflow: hidden;
 }
 
 .game-container {
@@ -14,31 +15,23 @@ body {
     flex-direction: column;
     align-items: center;
     position: relative;
-}
-
-.score-board {
-    display: flex;
-    justify-content: space-between;
-    width: 800px;
-    margin-bottom: 10px;
-}
-
-#player-score, #computer-score {
-    font-size: 2rem;
-    color: white;
-    padding: 10px;
-    width: 100px;
-    text-align: center;
+    width: 100%;
+    max-width: 800px;
 }
 
 canvas {
-    background-color: #000;
+    background-color: #2196F3; /* Classic Pong blue */
     border: 2px solid white;
+    width: 100%;
+    max-width: 800px;
+    height: auto;
+    aspect-ratio: 2 / 1; /* Maintain 2:1 aspect ratio */
 }
 
 .controls {
     margin-top: 20px;
     text-align: center;
+    width: 100%;
 }
 
 #start-btn {
@@ -60,6 +53,7 @@ canvas {
     margin-top: 10px;
     text-align: center;
     line-height: 1.5;
+    font-size: 1rem;
 }
 
 #game-over {
@@ -74,6 +68,8 @@ canvas {
     text-align: center;
     display: none; /* Initially hidden */
     z-index: 10;
+    width: 80%;
+    max-width: 300px;
 }
 
 #game-over h2 {
@@ -92,4 +88,29 @@ canvas {
 
 #game-over button:hover {
     background-color: #45a049;
+}
+
+/* Media queries for responsiveness */
+@media (max-width: 768px) {
+    .game-container {
+        width: 95%;
+    }
+    
+    .instructions {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .instructions {
+        font-size: 0.8rem;
+    }
+    
+    #start-btn {
+        padding: 8px 16px;
+    }
+    
+    #game-over {
+        padding: 15px;
+    }
 }
