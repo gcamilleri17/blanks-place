@@ -2,6 +2,15 @@
 const canvas = document.getElementById('pong');
 const ctx = canvas.getContext('2d');
 
+// Net object declaration moved here to fix initialization order
+const net = {
+    x: 0, // Will be set in setCanvasDimensions()
+    y: 0,
+    width: 2,
+    height: 10,
+    color: 'white'
+};
+
 // Set canvas dimensions
 function setCanvasDimensions() {
     const container = document.querySelector('.game-container');
@@ -106,14 +115,6 @@ let computerRotation = 0;
 let isRotating = false;
 let rotationProgress = 0;
 const rotationDuration = 1000; // 1 second for full rotation
-
-const net = {
-    x: (canvas.width - 2) / 2,
-    y: 0,
-    width: 2,
-    height: 10,
-    color: 'white'
-};
 
 // Flowers
 const flowers = [];
