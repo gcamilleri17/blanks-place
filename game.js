@@ -11,33 +11,6 @@ const net = {
     color: 'white'
 };
 
-// Set canvas dimensions
-function setCanvasDimensions() {
-    const container = document.querySelector('.game-container');
-    const maxWidth = 800;
-    const width = Math.min(container.clientWidth, maxWidth);
-    const height = width / 2; // Maintain 2:1 aspect ratio
-    
-    canvas.width = width;
-    canvas.height = height;
-    
-    // Update net position
-    net.x = (canvas.width - 2) / 2;
-    
-    // Update computer paddle position
-    computer.x = canvas.width - 10;
-}
-
-// Initialize canvas dimensions
-setCanvasDimensions();
-
-// Handle window resize
-window.addEventListener('resize', function() {
-    setCanvasDimensions();
-    resetBall();
-    render();
-});
-
 // Game objects
 const ball = {
     x: 0,
@@ -66,6 +39,33 @@ const computer = {
     score: 0,
     color: 'white'
 };
+
+// Set canvas dimensions
+function setCanvasDimensions() {
+    const container = document.querySelector('.game-container');
+    const maxWidth = 800;
+    const width = Math.min(container.clientWidth, maxWidth);
+    const height = width / 2; // Maintain 2:1 aspect ratio
+
+    canvas.width = width;
+    canvas.height = height;
+
+    // Update net position
+    net.x = (canvas.width - 2) / 2;
+
+    // Update computer paddle position
+    computer.x = canvas.width - 10;
+}
+
+// Initialize canvas dimensions
+setCanvasDimensions();
+
+// Handle window resize
+window.addEventListener('resize', function () {
+    setCanvasDimensions();
+    resetBall();
+    render();
+});
 
 // Function to reset positions based on current canvas size
 function resetPositions() {
